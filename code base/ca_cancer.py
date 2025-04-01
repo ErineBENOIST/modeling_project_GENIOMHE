@@ -43,15 +43,15 @@ def CA_Cancer(cell, neighbors: list):
 
 # Colors per phenotype (not all combinations are used)
 cellcolors = {
-    ('Empty', ''): 'white',
+    ('Empty', None): 'white',
     ('Cell', ''): 'gray',
-    ('Cell', 'H'): 'pink',
-    ('Cell', 'G'): 'green',
-    ('Cell', 'A'): 'blue',
-    ('Cell', 'HG'): 'lime',
-    ('Cell', 'GA'): 'yellow',
-    ('Cell', 'HA'): 'purple',
-    ('Cell', 'HGA'): 'orange',
+    ('Cell H', 'H'): 'pink',
+    ('Cell G', 'G'): 'green',
+    ('Cell A', 'A'): 'blue',
+    ('Cell HG', 'HG'): 'lime',
+    ('Cell GA', 'GA'): 'yellow',
+    ('Cell HA', 'HA'): 'purple',
+    ('Cell HGA', 'HGA'): 'orange',
 }
 
 GuiCA(CA_Cancer, cellcolors)
