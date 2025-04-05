@@ -32,47 +32,6 @@ def CountType(cells: list, category: str) -> int:
     return [category for category, *_ in cells].count(category)
 
 
-def GenerateCA_BC(n: int, cellcolors: dict, weights = None) -> np.ndarray:
-    """
-    Initialize cell space.
-    
-    Returns:
-        cellcolors: Dictionary of cell types with metabolite levels
-        ca_grid: Initialized (N,N) cellular automaton
-    """
-    cells = list(cellcolors.keys())
-    
-    # initialize the grid with empty cells with 0 metabolites (as holder)
-    ca_grid = np.array([[cells[0] for _ in range(n)] for _ in range(n)], dtype=object)
-    
-    # intialize a single layer of normal cells as basement membrane on the bottom of the grid
-    for j in range(n):
-        ca_grid[-1][j] = cells[1]
-
-    # setting metabolite gradients for all non-basement cells
-    dg = 1.3e2
-    dc = 5
-    for i in range(n):
-        for j in range(n):
-            phenotype, _ = ca_grid[i][j]
-            
-            if i == n-1:  # basement membrane cells
-                new_metabolites = (1.0, 1.0, 0.0, (None, None))
-            else:
-                distance = (n-1) - i  # from basement membrane (0 = basement)
-                
-                # metabolite levels = exponential decay
-                glucose = np.exp(-distance/dg)
-                oxygen = np.exp(-distance/dc)
-                acid = 0.0 
-                new_metabolites = (glucose, oxygen, acid, (None, None))
-
-            # Update cell with correct metabolites
-            ca_grid[i][j] = (phenotype, new_metabolites)
-        
-    return ca_grid
-
-
 def Moore(r: int) -> list[tuple[int, int]]:
     """
     Compute the Moore neighborhood of radius r.
@@ -128,61 +87,120 @@ def DrawCA(cellautomaton: np.ndarray, colors: list, ax):
     )
 
 
+def GenerateCA_BC(n: int, cellcolors: dict, weights = None) -> np.ndarray:
+    # ... [keep your diffusion matrix setup identical] ...
+    cells = list(cellcolors.keys())
+
+    dg = 130 
+    dc = 5  
+
+    # initialize matrices
+    A_glucose = np.zeros((n*n, n*n))
+    A_oxygen = np.zeros((n*n, n*n))
+    b_glucose = np.zeros(n*n)
+    b_oxygen = np.zeros(n*n)
+
+    for i in range(n):
+        for j in range(n):
+            index = i * n + j
+            
+            if i == n - 1:  # basement membrane
+                A_glucose[index, index] = 1
+                A_oxygen[index, index] = 1
+                b_glucose[index] = 1.0
+                b_oxygen[index] = 1.0
+            else:
+                # standard 5-point stencil
+                A_glucose[index, index] = -4 - (1/dg**2)
+                A_oxygen[index, index] = -4 - (1/dc**2)
+                
+                # neighbors
+                for di, dj in [(-1,0), (1,0), (0,-1), (0,1)]:
+                    ni, nj = i + di, j + dj
+                    
+                    if 0 <= ni < n:  # walid row index
+                        if 0 <= nj < n:  # normal interior neighbor
+                            A_glucose[index, ni*n + nj] = 1
+                            A_oxygen[index, ni*n + nj] = 1
+                        else:  # side boundary (! USE zero-flux)
+                            # mirror index: reflects back into the domain
+                            mirrored_nj = j if (nj < 0) else (2*(n-1) - j)
+                            A_glucose[index, ni*n + mirrored_nj] += 1
+                            A_oxygen[index, ni*n + mirrored_nj] += 1
+
+    # solve
+    glucose_levels = np.linalg.solve(A_glucose, b_glucose).reshape(n, n)
+    oxygen_levels = np.linalg.solve(A_oxygen, b_oxygen).reshape(n, n)
+    
+    # Initialize grid with explicit 3D structure
+    ca_grid = np.empty((n, n, 2), dtype=object)
+    for i in range(n):
+        for j in range(n):
+            if i == n - 1:  # basement
+                cell_type = "normal"
+                metabolites = (1.0, 1.0, 0.0, (None, None))
+            else:
+                cell_type = "empty"
+                metabolites = (glucose_levels[i,j], oxygen_levels[i,j], 0.0, (None, None))
+            ca_grid[i,j,0] = cell_type
+            ca_grid[i,j,1] = metabolites
+    return ca_grid
+
 def SimulateCA_BC(cellautomaton0: np.ndarray, f, neighborhood=Moore(1), duration: int = 100) -> list:
     """
     Modified version with detachment detection
     """
     assert duration > 0
 
-    def is_attached_to_basement(grid, i, j):
-        """
-        Check if cell is either:
-        1. Directly connected to basement via cell-cell contacts OR
-        2. Is hyperplastic (exempt from detachment death)
-        """
-        phenotype_ = grid[i][j][0]
-        
-        # we dont care if its hyperplastic
-        if 'H' in phenotype_:  # 'H', 'GH', 'AH', 'AGH'
-            return True 
-        
-        # we also dont care if its already the basement
-        if i == len(grid)-1:
-            return True
-        
-        # check only immediate downward connection (more biologically plausible)
-        for dx, dy in [(1,0), (1,-1), (1,1)]:  # down, down-left, down-right
-            ni, nj = i + dx, j + dy
-            if (0 <= ni < len(grid) and 0 <= nj < len(grid[0])):
-                if grid[ni][nj][0] not in ["empty", None]:
-                    return True
-        
-        return False
-
     def ca_step(cellautomaton: np.ndarray, f) -> np.ndarray:
         n = len(cellautomaton)
-        empty_cell = np.array(("empty", (0.0, 0.0, 0.0, (None, None))), dtype=object)
-    
-        padded = np.empty((n+2, n+2, 2), dtype=object)
-        padded[:,:] = empty_cell  # fill all with empty cells first
-        padded[1:-1, 1:-1] = cellautomaton  # insert original grid
+        empty_cell = ("empty", (0.0, 0.0, 0.0, (None, None)))
         
+        # Initialize padded array with explicit 3D structure
+        padded = np.full((n+2, n+2, 2), empty_cell, dtype=object)
+        padded[1:-1, 1:-1, :] = cellautomaton
+        
+        # Mirror boundaries with explicit dimension handling
+        for dim in [0,1]:  # Handle both cell type and metabolites
+            padded[1:-1, 0, dim] = cellautomaton[:, 0, dim]  # Left
+            padded[1:-1, -1, dim] = cellautomaton[:, -1, dim]  # Right
+            padded[0, 1:-1, dim] = cellautomaton[0, :, dim]  # Top
+            padded[-1, 1:-1, dim] = cellautomaton[-1, :, dim]  # Bottom
+
+        # Proper neighborhood extraction
         neighbor_offsets = np.array(neighborhood) + 1
-        neighbors = np.empty((n, n, len(neighborhood), 2), dtype=object)
+        neighbors = np.empty((n, n, len(neighborhood)), dtype=object)
+        
         for idx, (di, dj) in enumerate(neighbor_offsets):
-            neighbors[:,:,idx] = padded[di:di+n, dj:dj+n]
+            # Extract both components while maintaining structure
+            types = padded[di:di+n, dj:dj+n, 0]
+            metabolites = padded[di:di+n, dj:dj+n, 1]
+            
+            # Combine into tuples
+            for i in range(n):
+                for j in range(n):
+                    neighbors[i,j,idx] = (types[i,j], metabolites[i,j])
 
         canew = np.empty_like(cellautomaton)
         for i in range(n):
             for j in range(n):
-                # applying the rules
-                new_cell = f(cellautomaton[i][j], neighbors[i][j])
+                new_cell = f(cellautomaton[i,j], neighbors[i,j])
+
+                # maintaining the basement membrane, it must not be empty:
+                if i == n - 1:
+                    if new_cell[0] == "empty":
+                        canew[i,j] = ("normal", (1.0, 1.0, 0.0, (None, None)))
+                    else: # making sure that the metabolite levels at the basement are always 1,1,0
+                        canew[i,j] = (new_cell[0], (1.0, 1.0, 0.0, (new_cell[1][3][0], new_cell[1][3][1])))
+
                 
-                # detachment check
-                if ("H" not in new_cell[0] and not is_attached_to_basement(cellautomaton, i, j)):
-                    canew[i,j] = ("empty", (0.0, 0.0, 0.0, (None, None)))
+                # for non-basement cells
                 else:
-                    canew[i,j] = new_cell
+                    if "H" not in new_cell[0]:
+                        canew[i,j] = ("empty", (new_cell[1][0], new_cell[1][1], new_cell[1][2], (None, None)))
+                    else:
+                        canew[i,j] = new_cell
+                
         return canew
 
     simulation = [cellautomaton0]
@@ -549,7 +567,7 @@ def GuiCA(
 
     # Initialization of the main variables
     _gridsize = gridsize // 2
-    _duration = duration // 2
+    _duration = duration # // 2
     cells = list(cellcolors.keys())
     types = [category for category, *_ in cells]  # Get all types of cells
     colors = cellcolors.values()

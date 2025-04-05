@@ -6,7 +6,7 @@ from random import random, choice
 # constants
 dg = 1.3e2
 dc = 5
-k = 100
+k = 10
 
 a0 = 0.1        # ATP production threshold, if lower than alpha0, cell dies
 hN = 9.3e2      # threshold of local H+ level for normal cells, die if greater
@@ -59,15 +59,12 @@ def BC(cell, neighbors):
         phiG = gluc_level
     phiA = oxy_level + 1/18 * (phiG - oxy_level)
 
-    if "H" in phenotype:
-        p_division = 0.8
-    else:
-        if phiA < a0:
-            return ("empty", (gluc_level, oxy_level, h_level, (None, None)))
-        elif phiA < 1 and phiA > a0:
-            p_division = (phiA - a0) / (1-a0)
-        elif phiA >=1:
-            p_division = 1
+    if phiA < a0:
+        return ("empty", (gluc_level, oxy_level, h_level, (None, None)))
+    elif phiA < 1 and phiA > a0:
+        p_division = (phiA - a0) / (1-a0)
+    elif phiA >=1:
+        p_division = 1
 
     if not random() < p_division:
         return (phenotype, (gluc_level, oxy_level, h_level, (None, None)))
@@ -109,4 +106,4 @@ cellcolors = {('empty', (0.0, 0.0, 0.0, (None, None))): 'white',
               ('AG', (None, None, None, (None, None))): 'yellow', 
               ('AGH', (None, None, None, (None, None))): 'black'} 
 
-GuiCA(BC, cellcolors, gridsize=100, duration=100)
+GuiCA(BC, cellcolors, gridsize=100, duration=500)
