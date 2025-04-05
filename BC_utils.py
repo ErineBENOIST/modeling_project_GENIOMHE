@@ -120,9 +120,9 @@ def get_targeting_neighbor(neighbors):
             continue
         else:    
             # Get this neighbor's relative position to current cell
-            # if isinstance(target_coords, int):
-            #     print(target_coords)
-            #     break
+            if isinstance(target_coords, int):
+                print(target_coords)
+                break
             required_target = [a + b for a, b in zip(moores[idx], target_coords)]
             
             if required_target == [0,0]:
