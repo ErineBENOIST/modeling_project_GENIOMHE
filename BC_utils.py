@@ -1,6 +1,6 @@
 
-from random import random, choice
-import numpy as np
+from random import random, choice, seed
+seed(10)
 
 
 # constants
@@ -56,10 +56,10 @@ def UpdateMetabolites(phenotype, neighbors):
     if phenotype == "empty":
         deltaH = 0
     elif "G" in phenotype:
-        deltaH = gluc_level - oxy_level
+        deltaH = k * gluc_level - oxy_level
     else:
         if gluc_level > oxy_level:
-            deltaH = gluc_level - oxy_level
+            deltaH = k * gluc_level - oxy_level
         else:
             deltaH = 0  
             
@@ -84,18 +84,46 @@ def select_daughter_neighbor(oxygen_in_neighbors):
 def acquire_phenotypes(parent_phenotype, p_a=pa):
     """
     Applies phenotype changes to the daughter cells. Each daughter cell has a probability of p_a 
-    to acquire one of new traits (A, G, H) or losing (A,G,H) because changes are reversible
+    to acquire one of new traits (A, G, H) or losing (A,G,H) because changes are reversible.
+    Changes can be:
+      1) Gaining one new trait A,G,H if parent is normal
+      2) Losing one existing trait (e.g., AH->H, AGH->AG, G->normal, etc.)
+      3) Switching one existing trait for another (e.g. A->G, G->H, etc.)
     """
     traits = set(parent_phenotype.replace("normal", ""))
+    all_traits = {'A', 'G', 'H'}
     
-    # each daughter has one chance to gain/lose a trait
     if random() < p_a:
-        if traits:  # revert a trait with 50% chance
-            if random() < 0.5:
-                traits.remove(choice(list(traits)))
-        else:  # acquire a new trait
-            new_trait = choice(['H', 'G', 'A'])
+        if not traits:
+            # If the cell is "normal", it can only gain a trait
+            new_trait = choice(list(all_traits))
             traits.add(new_trait)
+        else:
+            # If the cell has traits, decide whether to gain, lose, or switch
+            action = choice(['gain', 'lose', 'switch'])
+            
+            if action == 'gain':
+                # Gain a new trait not currently present
+                possible_gains = all_traits - traits
+                if possible_gains:
+                    new_trait = choice(list(possible_gains))
+                    traits.add(new_trait)
+            
+            elif action == 'lose':
+                # Lose an existing trait
+                if traits:
+                    trait_to_remove = choice(list(traits))
+                    traits.remove(trait_to_remove)
+            
+            elif action == 'switch':
+                # Switch one existing trait for another
+                if traits:
+                    trait_to_switch = choice(list(traits))
+                    traits.remove(trait_to_switch)
+                    possible_switches = all_traits - {trait_to_switch} - traits
+                    if possible_switches:
+                        new_trait = choice(list(possible_switches))
+                        traits.add(new_trait)
     
     return ''.join(sorted(traits)) if traits else "normal"
     
