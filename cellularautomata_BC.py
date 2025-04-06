@@ -76,7 +76,7 @@ def DrawCA(cellautomaton: np.ndarray, colors: list, ax):
     return sns.heatmap(
         cellautomaton,
         cmap=color.ListedColormap(colors),
-        linewidths=0.000005,
+        linewidths=0.0000005,
         cbar=False,
         linecolor="lightgrey",
         clip_on=False,
@@ -86,7 +86,6 @@ def DrawCA(cellautomaton: np.ndarray, colors: list, ax):
         yticklabels=False,
         ax=ax,
     )
-
 
 def GenerateCA_BC(n: int, cellcolors: dict, weights = None) -> np.ndarray:
     # ... [keep your diffusion matrix setup identical] ...
@@ -214,6 +213,8 @@ def SimulateCA_BC(cellautomaton0: np.ndarray, f, neighborhood=Moore(1), duration
     return simulation
 
 
+
+
 def SimulateCA(cellautomaton0: np.ndarray, f, neighborhood=Moore(1), duration: int = 100) -> list:
     """Compute a simulation of a cellular automaton.
 
@@ -303,7 +304,7 @@ def ShowSimulation(simulation: list, cellcolors: dict[tuple, str], figheight: in
     figtitle = "CELLULAR AUTOMATON - FD MASTER COURSE"  # Simulation title.
 
     # Font style for all texts in the simulation window.
-    mpl.rcParams["font.family"] = "fantasy"
+    mpl.rcParams["font.family"] = "Helvetica"
     mpl.rcParams["font.size"] = 11
     mpl.rcParams["text.color"] = "black"
 
@@ -349,6 +350,7 @@ def ShowSimulation(simulation: list, cellcolors: dict[tuple, str], figheight: in
     typescount = {  # Dictionary keeping the count of the different cell types.
         category: [sum([CountType(row, category) for row in ca]) for ca in simulation]
         for category in types}
+
 
     visible_curves = [thecolor != "white" for thecolor in colors]  # All the curves are visible but those drawn in white color.
     curves = {  # The curves are collected to a dictionary {type: counting curve}.
@@ -460,7 +462,7 @@ def ShowSimulation(simulation: list, cellcolors: dict[tuple, str], figheight: in
 
     def msgput(msg: str):  # Print a message in the message box.
         msgclear()
-        axmsg.text(0.01, 0.2, msg, fontsize=8, fontfamily='serif', fontstyle='italic')
+        axmsg.text(0.01, 0.2, msg, fontsize=8, fontfamily='Helvetica', fontstyle='italic')
 
     # || Handling events: move + click on the axes.
     def hover(event):
@@ -588,7 +590,7 @@ def GuiCA(
 
     # Initialization of the main variables
     _gridsize = gridsize // 2
-    _duration = duration # // 2
+    _duration = duration #// 2
     cells = list(cellcolors.keys())
     types = [category for category, *_ in cells]  # Get all types of cells
     colors = cellcolors.values()
@@ -767,7 +769,7 @@ def GuiCA(
 
         _radiotypes = [Button(axradio[i], category, color=UNSELECTCOLOR, hovercolor=HOVERCOLOR) for i, category in enumerate(types)]
         for rb in _radiotypes:  # Set style of the radio button labels.
-            rb.label.set_fontfamily("fantasy")
+            rb.label.set_fontfamily("Helvetica")
             rb.label.set_fontsize(8)
 
         # Initialization of the radio button bar
