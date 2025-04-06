@@ -59,7 +59,7 @@ def UpdateMetabolites(phenotype, neighbors):
         deltaH = k * gluc_level - oxy_level
     else:
         if gluc_level > oxy_level:
-            deltaH = k * gluc_level - oxy_level
+            deltaH = gluc_level - oxy_level
         else:
             deltaH = 0  
             
@@ -79,6 +79,72 @@ def select_daughter_neighbor(oxygen_in_neighbors):
     
     return moores[choice(max_oxygen_indices)] # random.choice
 
+
+def acquire_phenotypes0(parent_phenotype, p_a=pa):
+    """
+    Applies phenotype changes to the daughter cells. Each daughter cell has a probability of p_a 
+    to acquire one of new traits (A, G, H) or losing (A,G,H) because changes are reversible
+    Changes can be:
+      1) Gaining one new trait A,G,H if parent is normal
+      2) Losing one existing trait (e.g., AH->H, AGH->AG, G->normal, etc.)
+      3) Switching one existing trait for another (e.g. A->G, G->H, etc.)
+    """
+    assert parent_phenotype != "empty"
+    
+    traits = set(parent_phenotype.replace("normal", ""))
+    all_traits = {"A", "G", "H"}
+
+    if random() < p_a:
+        
+        # parent is normal (no trait = "")
+        if not traits:
+            traits.add(choice(list(all_traits)))
+    
+        # parent is AGH
+        elif len(traits) == 3:
+            traits.remove(choice(list(traits)))
+    
+        # parent is A, G, H, AG, AH, GH
+        else:
+            action = choice(["add", "remove", "swap"])
+            # swap: A->G, G->H, etc.
+            # add: A->AG, G->AG, GH->AGH etc.
+            # remove: A->normal, GH->G
+    
+            if action == "remove":
+                traits.remove(choice(list(traits)))
+            elif action == "swap":
+                old_trait = choice(list(traits))
+                new_trait = choice(list(all_traits - traits))
+                traits.remove(old_trait)
+                traits.add(new_trait)
+            else:
+                traits.add(choice(list(all_traits - traits)))
+            
+    return ''.join(sorted(traits)) if traits else "normal"
+
+    
+def acquire_phenotypes2(parent_phenotype, p_a=pa):
+    """
+    Strictly follows paper's description:
+    - Each daughter cell INDEPENDENTLY has p_a chance to toggle ONE trait
+    - Toggle = add if absent, remove if present
+    - All traits (A/G/H) have equal probability of being selected
+    """
+    traits = set(parent_phenotype.replace("normal", ""))
+    all_traits = {'A', 'G', 'H'}
+    
+    if random() < p_a:
+        # Randomly select any one trait (A/G/H)
+        selected_trait = choice(list(all_traits))
+        
+        # Toggle: Add if absent, Remove if present
+        if selected_trait in traits:
+            traits.remove(selected_trait)
+        else:
+            traits.add(selected_trait)
+    
+    return ''.join(sorted(traits)) if traits else "normal"
 
 
 def acquire_phenotypes(parent_phenotype, p_a=pa):
@@ -126,7 +192,7 @@ def acquire_phenotypes(parent_phenotype, p_a=pa):
                         traits.add(new_trait)
     
     return ''.join(sorted(traits)) if traits else "normal"
-    
+
 
 def get_targeting_neighbor(neighbors):
     """
@@ -149,7 +215,7 @@ def get_targeting_neighbor(neighbors):
         else:    
             # Get this neighbor's relative position to current cell
             if isinstance(target_coords, int):
-                print(target_coords)
+                #print(target_coords)
                 break
             required_target = [a + b for a, b in zip(moores[idx], target_coords)]
             
