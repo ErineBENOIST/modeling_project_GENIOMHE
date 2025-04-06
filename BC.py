@@ -1,7 +1,9 @@
 from BC_utils import (UpdateMetabolites, select_daughter_neighbor, 
-                  acquire_phenotypes, get_targeting_neighbor)
-from cellularautomata_BC import GenerateCA_BC, SimulateCA_BC, GuiCA
-from random import random, choice
+                      acquire_phenotypes, get_targeting_neighbor)
+from cellularautomata_BC import GuiCA
+from random import random, seed
+
+seed(10)
 
 # constants
 dg = 1.3e2
@@ -36,18 +38,15 @@ def BC(cell, neighbors):
             return (new_phenotype, (gluc_level, oxy_level, h_level, (None, None)))
             
     # ------------------ 2. CELL DEATH ------------------
-    if 'A' in phenotype:
-        h_threshold = hT  # Use acid-resistant threshold for H cells
+    if "A" in phenotype:
+        h_threshold = hT
     else:
         h_threshold = hN
-    
-    if hN < hT: 
-        p_death = 1
     
     if h_level < h_threshold:
         p_death = h_level / h_threshold
     else:
-        p_death = 0.7
+        p_death = 1
     
     if random() < p_death:
         return ("empty", (gluc_level, oxy_level, h_level, (None, None)))
@@ -57,8 +56,9 @@ def BC(cell, neighbors):
         phiG = k * gluc_level
     else:
         phiG = gluc_level
-    phiA = oxy_level + 1/18 * (phiG - oxy_level)
+    phiA = oxy_level + (phiG - oxy_level) / 18
 
+    # cell will die if produce ATP (phiA) < a0
     if phiA < a0:
         return ("empty", (gluc_level, oxy_level, h_level, (None, None)))
     elif phiA < 1 and phiA > a0:
@@ -66,7 +66,7 @@ def BC(cell, neighbors):
     elif phiA >=1:
         p_division = 1
 
-    if not random() < p_division:
+    if not random() < p_division: # no division, stay quiescent (same phenotype)
         return (phenotype, (gluc_level, oxy_level, h_level, (None, None)))
         
     else:
@@ -80,10 +80,11 @@ def BC(cell, neighbors):
             return (phenotype, (gluc_level, oxy_level, h_level, (None, None)))
         elif len(empty_neighbors_o2) == 1:
             daughter_index = list(empty_neighbors_o2.keys())[0]
-        else:
+        else: # if more than 2 empty neighbor exists, choose one with highest O2
             daughter_index = select_daughter_neighbor(empty_neighbors_o2)
 
         if daughter_index is not None:
+            # if a location is found for daughter cells, choose phenotype
             daughter1_phenotype = acquire_phenotypes(phenotype)
             daughter2_phenotype = acquire_phenotypes(phenotype)
             return (daughter1_phenotype, (gluc_level, oxy_level, h_level, (daughter_index, daughter2_phenotype)))
@@ -99,11 +100,11 @@ h_base = 0.0
 cellcolors = {('empty', (0.0, 0.0, 0.0, (None, None))): 'white', 
               ('normal', (g_base, g_base, h_base, (None, None))): 'grey', 
               ('H', (None, None, None, (None, None))): '#f38e8d',    # pink
-              ('G', (None, None, None, (None, None))): '#09a44c',    # green
-              ('GH', (None, None, None, (None, None))): '#09a44c',   # green
-              ('A', (None, None, None, (None, None))): '#56529e',    # blue
-              ('AH', (None, None, None, (None, None))): '#56529e',   # blue
-              ('AG', (None, None, None, (None, None))): 'yellow', 
-              ('AGH', (None, None, None, (None, None))): 'black'} 
+              ('G', (None, None, None, (None, None))): 'black',  
+              ('GH', (None, None, None, (None, None))): '#067335',   # dark green
+              ('A', (None, None, None, (None, None))): '#45427e',  
+              ('AH', (None, None, None, (None, None))): '#45427e',   # dark blue
+              ('AG', (None, None, None, (None, None))): 'black', 
+              ('AGH', (None, None, None, (None, None))): '#eecb4a'} # yellow
 
-GuiCA(BC, cellcolors, gridsize=100, duration=500)
+GuiCA(BC, cellcolors, gridsize=100, duration=800)
