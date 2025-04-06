@@ -13,6 +13,7 @@ import seaborn as sns  # type: ignore
 from matplotlib.widgets import Slider, Button, CheckButtons, RadioButtons, RectangleSelector  # type: ignore
 from matplotlib.patches import Rectangle  # type: ignore
 from tqdm import tqdm
+import csv
 
 mpl.use('TkAgg')  # set Tkinter as Matplotlib backend
 
@@ -75,7 +76,7 @@ def DrawCA(cellautomaton: np.ndarray, colors: list, ax):
     return sns.heatmap(
         cellautomaton,
         cmap=color.ListedColormap(colors),
-        linewidths=0.5,
+        linewidths=0.000005,
         cbar=False,
         linecolor="lightgrey",
         clip_on=False,
@@ -146,6 +147,7 @@ def GenerateCA_BC(n: int, cellcolors: dict, weights = None) -> np.ndarray:
             ca_grid[i,j,1] = metabolites
     return ca_grid
 
+
 def SimulateCA_BC(cellautomaton0: np.ndarray, f, neighborhood=Moore(1), duration: int = 100) -> list:
     """
     Modified version with detachment detection
@@ -186,12 +188,9 @@ def SimulateCA_BC(cellautomaton0: np.ndarray, f, neighborhood=Moore(1), duration
             for j in range(n):
                 new_cell = f(cellautomaton[i,j], neighbors[i,j])
 
-                # maintaining the basement membrane, it must not be empty:
+                # maintaining the basement membrane:
                 if i == n - 1:
-                    if new_cell[0] == "empty":
-                        canew[i,j] = ("normal", (1.0, 1.0, 0.0, (None, None)))
-                    else: # making sure that the metabolite levels at the basement are always 1,1,0
-                        canew[i,j] = (new_cell[0], (1.0, 1.0, 0.0, (new_cell[1][3][0], new_cell[1][3][1])))
+                    canew[i,j] = (new_cell[0], (1.0, 1.0, 0.0, (new_cell[1][3][0], new_cell[1][3][1])))
 
                 
                 # for non-basement cells
@@ -362,6 +361,28 @@ def ShowSimulation(simulation: list, cellcolors: dict[tuple, str], figheight: in
             visible=visible_curves[i],
         )[0]
         for i, category in enumerate(types)}
+    
+    ########################################################################## 
+    ######## -------------- SAVING CELL COUNTS TO CSV --------------- ########
+    ##########################################################################
+    ## Added by Ngoc VU April 6th, 2025.
+
+    filename = "cellcount.csv"
+    header = ['Iteration'] + list(types.keys())
+    data = []
+
+    for iteration in range(len(simulation)):
+        row = [iteration] + [typescount[category][iteration] for category in types]
+        data.append(row)
+
+    with open(filename, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(header)
+        writer.writerows(data)
+
+    ##########################################################################
+    ##########################################################################
+    ##########################################################################
 
     # || Check box button characterization for curves
     chxboxheight = len(types) * 0.05  # Check box height which depends on the number of categories.
