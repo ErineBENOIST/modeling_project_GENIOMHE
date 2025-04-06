@@ -13,7 +13,7 @@ k = 10
 a0 = 0.1        # ATP production threshold, if lower than alpha0, cell dies
 hN = 9.3e2      # threshold of local H+ level for normal cells, die if greater
 hT = 8.6e3      # threshold of local H+ level for acid-resistant cells, die if greater
-pa = 1e-3       # probability of randomly acquiring one of the three phenotypes (H,G,A)
+pa = 1e-3      # probability of randomly acquiring one of the three phenotypes (H,G,A)
 
 moores = [
         (-1,-1), (-1,0), (-1,1),
@@ -51,7 +51,7 @@ def BC(cell, neighbors):
     if random() < p_death:
         return ("empty", (gluc_level, oxy_level, h_level, (None, None)))
 
-    # ------------------ 3. CELL DIVISION ------------------
+    # ------------------ 4. CELL DIVISION ------------------
     if "G" in phenotype:
         phiG = k * gluc_level
     else:
@@ -74,7 +74,7 @@ def BC(cell, neighbors):
         for i in range(len(neighbors)):
             _, env = neighbors[i]
             if _ == "empty":
-                empty_neighbors_o2[i] = env[1]
+                empty_neighbors_o2[i] = env[1] # store oxygen level of empty neighbors
 
         if len(empty_neighbors_o2) == 0:
             return (phenotype, (gluc_level, oxy_level, h_level, (None, None)))
@@ -83,7 +83,7 @@ def BC(cell, neighbors):
         else: # if more than 2 empty neighbor exists, choose one with highest O2
             daughter_index = select_daughter_neighbor(empty_neighbors_o2)
 
-        if daughter_index is not None:
+        if daughter_index is not None: 
             # if a location is found for daughter cells, choose phenotype
             daughter1_phenotype = acquire_phenotypes(phenotype)
             daughter2_phenotype = acquire_phenotypes(phenotype)
@@ -97,12 +97,42 @@ M = 50
 g_base = 1.0 
 c_base = 1.0
 h_base = 0.0
+# cellcolors = {('empty', (0.0, 0.0, 0.0, (None, None))): 'white', 
+#               ('normal', (g_base, g_base, h_base, (None, None))): 'grey', 
+#               ('H', (None, None, None, (None, None))): '#f38e8d',    # pink
+#               ('G', (None, None, None, (None, None))): '#09a44c',    # green
+#               ('GH', (None, None, None, (None, None))): '#09a44c',   # green
+#               ('A', (None, None, None, (None, None))): '#56529e',    # blue
+#               ('AH', (None, None, None, (None, None))): '#56529e',   # blue
+#               ('AG', (None, None, None, (None, None))): 'yellow', 
+#               ('AGH', (None, None, None, (None, None))): 'black'} 
+
+# cellcolors = {('empty', (0.0, 0.0, 0.0, (None, None))): 'white', 
+#               ('normal', (g_base, g_base, h_base, (None, None))): 'grey', 
+#               ('H', (None, None, None, (None, None))): '#f38e8d',    # pink
+#               ('G', (None, None, None, (None, None))): '#3ab670',    # green
+#               ('GH', (None, None, None, (None, None))): '#067335',   # dark green
+#               ('A', (None, None, None, (None, None))): '#7875b1',    # blue
+#               ('AH', (None, None, None, (None, None))): '#45427e',   # dark blue
+#               ('AG', (None, None, None, (None, None))): 'yellow', 
+#               ('AGH', (None, None, None, (None, None))): 'black'}
+
+# cellcolors = {('empty', (0.0, 0.0, 0.0, (None, None))): 'white', 
+#               ('normal', (g_base, g_base, h_base, (None, None))): 'grey', 
+#               ('H', (None, None, None, (None, None))): '#f38e8d',    # pink
+#               ('G', (None, None, None, (None, None))): '#3ab670',    # green
+#               ('GH', (None, None, None, (None, None))): 'red',   # dark green
+#               ('A', (None, None, None, (None, None))): 'blue',    # blue
+#               ('AH', (None, None, None, (None, None))): '#45427e',   # dark blue
+#               ('AG', (None, None, None, (None, None))): 'yellow', 
+#               ('AGH', (None, None, None, (None, None))): 'black'}
+
 cellcolors = {('empty', (0.0, 0.0, 0.0, (None, None))): 'white', 
               ('normal', (g_base, g_base, h_base, (None, None))): 'grey', 
               ('H', (None, None, None, (None, None))): '#f38e8d',    # pink
-              ('G', (None, None, None, (None, None))): 'black',  
+              ('G', (None, None, None, (None, None))): 'black',   
               ('GH', (None, None, None, (None, None))): '#067335',   # dark green
-              ('A', (None, None, None, (None, None))): '#45427e',  
+              ('A', (None, None, None, (None, None))): '#45427e',    # blue
               ('AH', (None, None, None, (None, None))): '#45427e',   # dark blue
               ('AG', (None, None, None, (None, None))): 'black', 
               ('AGH', (None, None, None, (None, None))): '#eecb4a'} # yellow
