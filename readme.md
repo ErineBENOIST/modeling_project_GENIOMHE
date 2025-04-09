@@ -26,14 +26,14 @@ Detailed rules of the cellular automaton and the source paper can be found in [r
 ## Simulation results
 We successfully found 2 evolution pathways described in the model. In addition, we also identified a novel pathway (called X) that shows the co-evolution of three invasive phenotypes in the cell system. Simulation xamples can be found in [gif](gif/).
 
-**Pathway 1:**
+### Pathway 1:
 
-[pathway1](gif/pathway1.gif)
+<img src="gif/pathway1.gif"/>
 
-**Pathway 2:**
+### Pathway 2:
 
-[pathway2](gif/pathway2.gif)
+<img src="gif/pathway2.gif"/>
 
-**Pathway X (new, not yet validated):**
+### Pathway X (new, not yet validated):
 
-[pathwayX](gif/pathwayX2_a0.05.gif)
+<img src="gif/pathwayX2_a0.05.gif"/>
